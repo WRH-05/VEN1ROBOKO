@@ -1,4 +1,5 @@
-#include <AFMotor.h>   
+#include <AFMotor.h>
+#include <Arduino.h>
 
 AF_DCMotor motor1(1);     
 AF_DCMotor motor2(2);
