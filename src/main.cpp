@@ -2,6 +2,7 @@
 
 const int trigPin = 2;       // Shared Trigger D2
 const int echoPinFront = A0; // Front Echo A0
+const int echoPinLeft = A5;  // Left Echo A5
 const int echoPinRight = A1; // Right Echo A1
 
 void setup() {
@@ -9,8 +10,9 @@ void setup() {
   delay(1000); // Wait for serial to stabilize after bootloader
   pinMode(trigPin, OUTPUT);
   pinMode(echoPinFront, INPUT);
+  pinMode(echoPinLeft, INPUT);
   pinMode(echoPinRight, INPUT);
-  Serial.println("Dual Ultrasonic Sensor Test Started");
+  Serial.println("Triple Ultrasonic Sensor Test Started");
 }
 
 long readDistance(int echoPin) {
@@ -44,6 +46,12 @@ void loop() {
 
   // Read Right Sensor
   long distRight = readDistance(echoPinRight);
+  
+  // Delay to prevent echo interference
+  delay(60);
+  
+  // Read Left Sensor
+  long distLeft = readDistance(echoPinLeft);
 
   // Print results
   Serial.print("Front: ");
@@ -59,6 +67,14 @@ void loop() {
     Serial.print("Error");
   } else {
     Serial.print(distRight);
+    Serial.print(" cm");
+  }
+  
+  Serial.print(" | Left: ");
+  if (distLeft == -1) {
+    Serial.print("Error");
+  } else {
+    Serial.print(distLeft);
     Serial.print(" cm");
   }
   Serial.println();
