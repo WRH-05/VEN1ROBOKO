@@ -1,16 +1,18 @@
 #include <Arduino.h>
 
-const int trigPin = 2;  // D2
-const int echoPin = A0; // A0
+const int trigPin = 2;       // Shared Trigger D2
+const int echoPinFront = A0; // Front Echo A0
+const int echoPinRight = A1; // Right Echo A1
 
 void setup() {
   Serial.begin(9600);
   pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  Serial.println("Ultrasonic Sensor Test Started");
+  pinMode(echoPinFront, INPUT);
+  pinMode(echoPinRight, INPUT);
+  Serial.println("Dual Ultrasonic Sensor Test Started");
 }
 
-void loop() {
+long readDistance(int echoPin) {
   // Clear the trigPin
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
@@ -20,15 +22,28 @@ void loop() {
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
 
-  // Reads the echoPin, returns the sound wave travel time in microseconds
+  // Reads the echoPin
   long duration = pulseIn(echoPin, HIGH);
+  
+  // Calculate distance
+  return duration * 0.034 / 2;
+}
 
-  // Calculating the distance
-  int distance = duration * 0.034 / 2;
+void loop() {
+  // Read Front Sensor
+  long distFront = readDistance(echoPinFront);
+  
+  // Small delay to prevent echo interference between readings
+  delay(50); 
 
-  // Prints the distance on the Serial Monitor
-  Serial.print("Distance: ");
-  Serial.print(distance);
+  // Read Right Sensor
+  long distRight = readDistance(echoPinRight);
+
+  // Print results
+  Serial.print("Front: ");
+  Serial.print(distFront);
+  Serial.print(" cm | Right: ");
+  Serial.print(distRight);
   Serial.println(" cm");
 
   delay(500);
