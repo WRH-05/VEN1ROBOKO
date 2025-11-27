@@ -1,162 +1,141 @@
-#include <AFMotor.h>   
+#include <Arduino.h>
+#include <AFMotor.h>
 
-AF_DCMotor motor1(1);     
-AF_DCMotor motor2(2);
-AF_DCMotor motor3(3);     
-AF_DCMotor motor4(4);
+const int trigPin = 2;       // Shared Trigger D2
+const int echoPinFront = A0; // Front Echo A0
+const int echoPinLeft = A5;  // Left Echo A5
+const int echoPinRight = A1; // Right Echo A1
 
-int trigPin = 9;
-int echoPin = 10;
-int S0 = 2;
-int S1 = 3;
-int S2 = 4;
+// Motor setup
+AF_DCMotor motorLeft(1);   // M1
+AF_DCMotor motorRight(2);  // M2
 
 void setup() {
   Serial.begin(9600);
+  delay(1000); // Wait for serial to stabilize after bootloader
   pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  pinMode(S0, OUTPUT);
-  pinMode(S1, OUTPUT);
-  pinMode(S2, OUTPUT);
-
-  digitalWrite(S0, LOW);
-  digitalWrite(S1, LOW);
-  digitalWrite(S2, LOW);
-
-  delay(5000);             
+  pinMode(echoPinFront, INPUT);
+  pinMode(echoPinLeft, INPUT);
+  pinMode(echoPinRight, INPUT);
   
-  motor1.setSpeed(255);    
-  motor2.setSpeed(255);   
-  motor3.setSpeed(255);    
-  motor4.setSpeed(255);  
+  // Set initial motor speed
+  motorLeft.setSpeed(255);
+  motorRight.setSpeed(255);
+  
+  Serial.println("Triple Ultrasonic Sensor Test Started");
 }
 
-void loop() {
-  robot();
-}
-
-// ---------- CAPTEURS DISTANCE ----------
-int distance(int sensor) {
-  // sensor = 0, 1 ou 2 (selon le capteur à lire)
-  long duration;
-  int dist;
-
-  // Sélection du capteur via multiplexeur
-  digitalWrite(S0, sensor & 0x01);
-  digitalWrite(S1, (sensor >> 1) & 0x01);
-  digitalWrite(S2, (sensor >> 2) & 0x01);
-  delay(2);
-
+long readDistance(int echoPin) {
+  // Clear the trigPin and wait for any previous echo to settle
   digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
+  delayMicroseconds(5);
+
+  // Sets the trigPin on HIGH state for 10 micro seconds
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
 
-  duration = pulseIn(echoPin, HIGH, 30000); 
-  dist = duration * 0.034 / 2;
-
-  if (duration == 0) dist = 999;  // si rien détecté
-
-  return dist;
+  // Reads the echoPin with timeout of 30ms (max ~5m range)
+  long duration = pulseIn(echoPin, HIGH, 30000);
+  
+  // If timeout (duration == 0), return -1 to indicate error
+  if (duration == 0) {
+    return -1;
+  }
+  
+  // Calculate distance
+  return duration * 0.034 / 2;
 }
 
-// ---------- MOUVEMENTS DE BASE ----------
+void loop() {
+  // Read Front Sensor
+  long distFront = readDistance(echoPinFront);
+  
+  // Delay to prevent echo interference between readings
+  delay(60); 
 
-void stopMotors() {
-  motor1.run(RELEASE);
-  motor2.run(RELEASE);
-  motor3.run(RELEASE);
-  motor4.run(RELEASE);
-}
+  // Read Right Sensor
+  long distRight = readDistance(echoPinRight);
+  
+  // Delay to prevent echo interference
+  delay(60);
+  
+  // Read Left Sensor
+  long distLeft = readDistance(echoPinLeft);
 
-void turnleft() {
-  // Tourne sur place vers la gauche :
-  // moteurs gauche en arrière, moteurs droite en avant
-  motor1.run(BACKWARD);
-  motor2.run(BACKWARD);
-  motor3.run(FORWARD);
-  motor4.run(FORWARD);
-  delay(300);   // durée du virage à ajuster
-  stopMotors();
-}
-
-void turnright() {
-  // Tourne sur place vers la droite :
-  // moteurs gauche en avant, moteurs droite en arrière
-  motor1.run(FORWARD);
-  motor2.run(FORWARD);
-  motor3.run(BACKWARD);
-  motor4.run(BACKWARD);
-  delay(300);   // durée du virage à ajuster
-  stopMotors();
-}
-
-// ---------- LOGIQUE ROBOT ----------
-
-void robot() {
-  int d1 = distance(0); 
-  int d2 = distance(1);
-  int d3 = distance(2);
-
-  // À adapter selon comment sont placés tes capteurs
-  if (d1 < 30 && d2 > 30 && d3 > 30 ) {
-    // Exemple : obstacle devant capteur 1 → avance tout droit
-    motor1.run(FORWARD);
-    motor2.run(FORWARD);
-    motor3.run(FORWARD);
-    motor4.run(FORWARD);
-  } else if (d1 > 30 && d2 < 30 && d3 > 30) {
-    // obstacle au milieu → tourne à droite
-    turnright();
-  } else if (d1 > 30 && d2 > 30 && d3 < 30) {
-    turnleft();
+  // Print results
+  Serial.print("Front: ");
+  if (distFront == -1) {
+    Serial.print("Error");
+    distFront = 999; // Set to high value if error
   } else {
-    NoDetect();
+    Serial.print(distFront);
+    Serial.print(" cm");
   }
-}
+  
+  Serial.print(" | Right: ");
+  if (distRight == -1) {
+    Serial.print("Error");
+    distRight = 999; // Set to high value if error
+  } else {
+    Serial.print(distRight);
+    Serial.print(" cm");
+  }
+  
+  Serial.print(" | Left: ");
+  if (distLeft == -1) {
+    Serial.print("Error");
+    distLeft = 999; // Set to high value if error
+  } else {
+    Serial.print(distLeft);
+    Serial.print(" cm");
+  }
+  Serial.println();
 
-
-
-void NoDetect() {
-  motor1.run(BACKWARD);
-  motor2.run(BACKWARD);
-  motor3.run(BACKWARD);
-  motor4.run(BACKWARD);
-  delay(200);
-  stopMotors();
-
-  char b = border();
-
-  switch (b) {
-    case 'R': 
-      motor1.setSpeed(250);    
-      motor2.setSpeed(100);   
-      motor3.setSpeed(250);    
-      motor4.setSpeed(100);
-      break;
-
-    case 'G':   
-      motor1.setSpeed(100);    
-      motor2.setSpeed(200);   
-      motor3.setSpeed(100);    
-      motor4.setSpeed(200);
-      break;
-
-    default:
-      motor1.setSpeed(200);    
-      motor2.setSpeed(200);   
-      motor3.setSpeed(200);    
-      motor4.setSpeed(200);
-      break;
+  // Find closest sensor and distance
+  long minDist = distFront;
+  String direction = "FRONT";
+  
+  if (distRight < minDist) {
+    minDist = distRight;
+    direction = "RIGHT";
+  }
+  
+  if (distLeft < minDist) {
+    minDist = distLeft;
+    direction = "LEFT";
   }
 
-  motor1.run(FORWARD);
-  motor2.run(FORWARD);
-  motor3.run(FORWARD);
-  motor4.run(FORWARD);
-}
+  // Motor control logic
+  if (minDist < 77) { // Less than 770mm (77cm)
+    // Move towards closest object at max speed
+    motorLeft.setSpeed(255);
+    motorRight.setSpeed(255);
+    
+    if (direction == "FRONT") {
+      // Move forward
+      motorLeft.run(FORWARD);
+      motorRight.run(FORWARD);
+      Serial.println("Action: Moving FORWARD");
+    } else if (direction == "RIGHT") {
+      // Turn right
+      motorLeft.run(FORWARD);
+      motorRight.run(BACKWARD);
+      Serial.println("Action: Turning RIGHT");
+    } else if (direction == "LEFT") {
+      // Turn left
+      motorLeft.run(BACKWARD);
+      motorRight.run(FORWARD);
+      Serial.println("Action: Turning LEFT");
+    }
+  } else {
+    // No object detected below 770mm, rotate slowly
+    motorLeft.setSpeed(100);
+    motorRight.setSpeed(100);
+    motorLeft.run(FORWARD);
+    motorRight.run(BACKWARD);
+    Serial.println("Action: Rotating SLOWLY");
+  }
 
-char border() {
-  return 'N';
+  delay(100);
 }
