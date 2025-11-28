@@ -7,8 +7,10 @@ const int echoPinLeft = A5;  // Left Echo A5
 const int echoPinRight = A1; // Right Echo A1
 
 // Motor setup
-AF_DCMotor motorLeft(1);   // M1
-AF_DCMotor motorRight(2);  // M2
+AF_DCMotor motorLeft1(1);   // M1 - Left front
+AF_DCMotor motorRight1(2);  // M2 - Right front
+AF_DCMotor motorRight2(3);  // M3 - Right rear
+AF_DCMotor motorLeft2(4);   // M4 - Left rear
 
 void setup() {
   Serial.begin(9600);
@@ -19,8 +21,10 @@ void setup() {
   pinMode(echoPinRight, INPUT);
   
   // Set initial motor speed
-  motorLeft.setSpeed(255);
-  motorRight.setSpeed(255);
+  motorLeft1.setSpeed(255);
+  motorRight1.setSpeed(255);
+  motorRight2.setSpeed(255);
+  motorLeft2.setSpeed(255);
   
   Serial.println("Triple Ultrasonic Sensor Test Started");
 }
@@ -109,31 +113,43 @@ void loop() {
   // Motor control logic
   if (minDist < 77) { // Less than 770mm (77cm)
     // Move towards closest object at max speed
-    motorLeft.setSpeed(255);
-    motorRight.setSpeed(255);
+    motorLeft1.setSpeed(255);
+    motorRight1.setSpeed(255);
+    motorRight2.setSpeed(255);
+    motorLeft2.setSpeed(255);
     
     if (direction == "FRONT") {
       // Move forward
-      motorLeft.run(FORWARD);
-      motorRight.run(FORWARD);
+      motorLeft1.run(FORWARD);
+      motorRight1.run(FORWARD);
+      motorRight2.run(FORWARD);
+      motorLeft2.run(FORWARD);
       Serial.println("Action: Moving FORWARD");
     } else if (direction == "RIGHT") {
       // Turn right
-      motorLeft.run(FORWARD);
-      motorRight.run(BACKWARD);
+      motorLeft1.run(FORWARD);
+      motorLeft2.run(FORWARD);
+      motorRight1.run(BACKWARD);
+      motorRight2.run(BACKWARD);
       Serial.println("Action: Turning RIGHT");
     } else if (direction == "LEFT") {
       // Turn left
-      motorLeft.run(BACKWARD);
-      motorRight.run(FORWARD);
+      motorLeft1.run(BACKWARD);
+      motorLeft2.run(BACKWARD);
+      motorRight1.run(FORWARD);
+      motorRight2.run(FORWARD);
       Serial.println("Action: Turning LEFT");
     }
   } else {
     // No object detected below 770mm, rotate slowly
-    motorLeft.setSpeed(100);
-    motorRight.setSpeed(100);
-    motorLeft.run(FORWARD);
-    motorRight.run(BACKWARD);
+    motorLeft1.setSpeed(50);
+    motorRight1.setSpeed(50);
+    motorRight2.setSpeed(50);
+    motorLeft2.setSpeed(50);
+    motorLeft1.run(FORWARD);
+    motorLeft2.run(FORWARD);
+    motorRight1.run(BACKWARD);
+    motorRight2.run(BACKWARD);
     Serial.println("Action: Rotating SLOWLY");
   }
 
